@@ -12,7 +12,6 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
-import java.io.Reader;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
@@ -37,8 +36,6 @@ import javax.script.ScriptEngine;
 import javax.script.ScriptEngineFactory;
 import javax.script.ScriptEngineManager;
 import javax.script.ScriptException;
-
-import org.jruby.embed.InvokeFailedException;
 
 import com.mojang.mojam.InputHandler;
 import com.mojang.mojam.Keys;
@@ -114,7 +111,8 @@ public final class ModSystem {
 	try {
 	    modDir = new File(new File(MojamComponent.class
 		    .getProtectionDomain().getCodeSource().getLocation()
-		    .toURI()).getParentFile(), "scripts");
+		    .toURI()), "/script");
+	    System.out.println(modDir.getAbsolutePath());
 	    modsFolder = new File(mojam.getMojamDir(), "/mods/");
 	    isJar = modDir.getAbsolutePath().endsWith(".jar");
 	    isDebug = !isJar;
@@ -127,7 +125,7 @@ public final class ModSystem {
 	inputHandler = (InputHandler) reflectField(mojam, "inputHandler");
 	try {
 	    readLinksFromFile(new File(mojam.getMojamDir(), "mods.txt"));
-	    readFromClassPath(modDir);
+	    readFromModFolder(modDir);
 	} catch (Exception e) {
 	    e.printStackTrace();
 	}
@@ -161,10 +159,11 @@ public final class ModSystem {
     private static void readFromModFolder(File file) throws IOException,
 	    IllegalArgumentException, IllegalAccessException,
 	    InvocationTargetException, SecurityException, NoSuchMethodException {
-	ClassLoader classloader = (com.mojang.mojam.MojamComponent.class)
+	
+	ClassLoader classloader = (MojamComponent.class)
 		.getClassLoader();
-	Method method = (java.net.URLClassLoader.class).getDeclaredMethod(
-		"addURL", new Class[] { java.net.URL.class });
+	Method method = (URLClassLoader.class).getDeclaredMethod(
+		"addURL", new Class[] { URL.class });
 	method.setAccessible(true);
 	if (!file.isDirectory()) {
 	    throw new IllegalArgumentException("Folder must be a Directory.");
@@ -185,6 +184,9 @@ public final class ModSystem {
 	}
 	for (int j = 0; j < afile.length; j++) {
 	    File file2 = afile[j];
+	    if(addScript(file2.getAbsolutePath())!=null){
+		continue;
+	    }
 	    if (file2.isDirectory()
 		    || file2.isFile()
 		    && (file2.getName().endsWith(".jar") || file2.getName()
@@ -900,8 +902,6 @@ public final class ModSystem {
 	    try {
 		Invocable i = (Invocable) sc;
 		i.invokeFunction(s, args);
-	    } catch (NoSuchMethodException e) {
-	    } catch (InvokeFailedException e) {
 	    } catch (ClassCastException e) {
 	    } catch (ScriptException e) {
 		System.out.println("Bad method in mod" + " at method " + s
@@ -909,7 +909,6 @@ public final class ModSystem {
 			+ e.getColumnNumber());
 		e.printStackTrace();
 	    } catch (Exception e) {
-		// e.printStackTrace();
 	    }
 	}
     }
