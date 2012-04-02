@@ -1,6 +1,6 @@
-mods = 0
-mojam = 0
+from com.mojang.mojam.mod import ModSystem
+Mojam = 0
 
 def log(s):
-	mojam.console.log(s)
+	Mojam.console.log(s)
 	return

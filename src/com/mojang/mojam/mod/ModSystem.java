@@ -374,9 +374,8 @@ public final class ModSystem {
 		    ModSystem.class.getResourceAsStream("/script/lib/lib."
 			    + s.substring(s.lastIndexOf('.') + 1)));
 	    e.eval(library);
-	    e.eval(fr);	
-	    e.put("mod", new ModSystem());
-	    e.put("mojam", mojam);
+	    e.eval(fr);
+	    e.put("Mojam", mojam);
 	    scriptList.add(e);
 	    System.out.println(e.getFactory().getExtensions().get(0)
 		    .toUpperCase()
@@ -947,6 +946,7 @@ public final class ModSystem {
     /**
      * Since JRuby doesn't like static methods for $mod
      */
+    @Deprecated
     public Font font() {
 	return Font.defaultFont();
     }
@@ -963,14 +963,15 @@ public final class ModSystem {
      * Since JRuby doesn't like static methods for $mod
      * @return the instance of Screen
      */
+    @Deprecated
     public AbstractScreen screen() {
 	return mojam.screen;
     }
     
     /**
-     * JRuby shortcut
+     * Shortcut to the Font.defaultFont.draw() issues with scripts and namespaces
      */
-    public void draw(String s, int i, int j) {
+    public static void draw(String s, int i, int j) {
 	Font.defaultFont().draw(mojam.screen, s, i, j);
     }
 

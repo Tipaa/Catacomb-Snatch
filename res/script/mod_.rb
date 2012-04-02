@@ -1,5 +1,4 @@
 def OnRender()
-    $mod.draw("Ruby",10,20)
 end
 
 def OnLevelTick(level)

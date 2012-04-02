@@ -1,6 +1,6 @@
-var mod;
-var mojam;
+var Mojam;
+var ModSystem = com.mojang.mojam.mod.ModSystem;
 
 function log(s){
-    mojam.console.log(s);
+    Mojam.console.log(s);
 }

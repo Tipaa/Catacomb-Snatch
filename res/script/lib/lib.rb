@@ -1,7 +1,6 @@
-#require 'java'
-$mod = 0
-$mojam = 0
+$Mojam = 0
+$ModSystem = Java::ComMojangMojamMod::ModSystem
 
 def log(s)
-    $mojam.console.log(s)
+    $Mojam.console.log(s)
 end
