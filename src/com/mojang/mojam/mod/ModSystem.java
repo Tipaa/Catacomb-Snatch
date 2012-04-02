@@ -159,11 +159,10 @@ public final class ModSystem {
     private static void readFromModFolder(File file) throws IOException,
 	    IllegalArgumentException, IllegalAccessException,
 	    InvocationTargetException, SecurityException, NoSuchMethodException {
-	
-	ClassLoader classloader = (MojamComponent.class)
-		.getClassLoader();
-	Method method = (URLClassLoader.class).getDeclaredMethod(
-		"addURL", new Class[] { URL.class });
+
+	ClassLoader classloader = (MojamComponent.class).getClassLoader();
+	Method method = (URLClassLoader.class).getDeclaredMethod("addURL",
+		new Class[] { URL.class });
 	method.setAccessible(true);
 	if (!file.isDirectory()) {
 	    throw new IllegalArgumentException("Folder must be a Directory.");
@@ -184,7 +183,7 @@ public final class ModSystem {
 	}
 	for (int j = 0; j < afile.length; j++) {
 	    File file2 = afile[j];
-	    if(addScript(file2.getAbsolutePath())!=null){
+	    if (addScript(file2.getAbsolutePath()) != null) {
 		continue;
 	    }
 	    if (file2.isDirectory()
@@ -361,6 +360,9 @@ public final class ModSystem {
      * @return An instance of the script
      */
     private static ScriptEngine addScript(String s) {
+	if (new File(s).isDirectory()) {
+	    return null;
+	}
 	ScriptEngine e = lang.getEngineByExtension(s.substring(s
 		.lastIndexOf('.') + 1));
 	try {
@@ -369,19 +371,17 @@ public final class ModSystem {
 		    ModSystem.class.getResourceAsStream("/script/lib/lib."
 			    + s.substring(s.lastIndexOf('.') + 1)));
 	    e.eval(library);
-	    e.eval(fr);
 	    e.put("mod", new ModSystem());
 	    e.put("mojam", MojamComponent.instance);
+	    e.eval(fr);	    
 	    scriptList.add(e);
 	    System.out.println(e.getFactory().getExtensions().get(0)
 		    .toUpperCase()
 		    + " Script initialised: " + s);
 	} catch (FileNotFoundException e1) {
-	    e1.printStackTrace();
 	} catch (NullPointerException e1) {
 	    System.out.println("Could not initialise mod " + s);
-	} catch (ScriptException e1) {
-	    e1.printStackTrace();
+	} catch (Exception e1) {
 	}
 	return e;
     }

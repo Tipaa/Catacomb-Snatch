@@ -1,5 +1,4 @@
 def OnRender()
-    ModSystem.getFont().draw(MojamComponent.instance.screen,"Ruby",20,20)
 end
 
 def OnLevelTick(level)
