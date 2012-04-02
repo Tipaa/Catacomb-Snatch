@@ -37,6 +37,8 @@ import javax.script.ScriptEngineFactory;
 import javax.script.ScriptEngineManager;
 import javax.script.ScriptException;
 
+import org.lwjgl.opengl.XRandR.Screen;
+
 import com.mojang.mojam.InputHandler;
 import com.mojang.mojam.Keys;
 import com.mojang.mojam.Keys.Key;
@@ -52,6 +54,7 @@ import com.mojang.mojam.level.gamemode.GameMode;
 import com.mojang.mojam.network.kryo.Network;
 import com.mojang.mojam.network.kryo.Network.ChangeKeyMessage;
 import com.mojang.mojam.screen.AbstractBitmap;
+import com.mojang.mojam.screen.AbstractScreen;
 
 public final class ModSystem {
 
@@ -371,9 +374,9 @@ public final class ModSystem {
 		    ModSystem.class.getResourceAsStream("/script/lib/lib."
 			    + s.substring(s.lastIndexOf('.') + 1)));
 	    e.eval(library);
+	    e.eval(fr);	
 	    e.put("mod", new ModSystem());
-	    e.put("mojam", MojamComponent.instance);
-	    e.eval(fr);	    
+	    e.put("mojam", mojam);
 	    scriptList.add(e);
 	    System.out.println(e.getFactory().getExtensions().get(0)
 		    .toUpperCase()
@@ -393,7 +396,7 @@ public final class ModSystem {
 	if (engine == null || entry.getName().contains("MANIFEST"))
 	    return null;
 	try {
-	    final int BUFFER = 8192;
+	    final int BUFFER = 16284;
 	    BufferedOutputStream dest = null;
 	    BufferedInputStream is = null;
 	    ZipFile zipfile = new ZipFile(modDir.getAbsolutePath());
@@ -939,6 +942,36 @@ public final class ModSystem {
      */
     public static Font getFont() {
 	return Font.defaultFont();
+    }
+    
+    /**
+     * Since JRuby doesn't like static methods for $mod
+     */
+    public Font font() {
+	return Font.defaultFont();
+    }
+    
+    /**
+     * Gets the instance of Screen to avoid static method semantics in scripts
+     * @return the instance of Screen
+     */
+    public static AbstractScreen getScreen() {
+	return mojam.screen;
+    }
+    
+    /**
+     * Since JRuby doesn't like static methods for $mod
+     * @return the instance of Screen
+     */
+    public AbstractScreen screen() {
+	return mojam.screen;
+    }
+    
+    /**
+     * JRuby shortcut
+     */
+    public void draw(String s, int i, int j) {
+	Font.defaultFont().draw(mojam.screen, s, i, j);
     }
 
     /**

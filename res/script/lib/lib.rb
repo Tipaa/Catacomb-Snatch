@@ -1,7 +1,7 @@
-require 'java'
-mod = 0
-mojam = 0
+#require 'java'
+$mod = 0
+$mojam = 0
 
 def log(s)
-    mojam::console.log(s)
+    $mojam.console.log(s)
 end
