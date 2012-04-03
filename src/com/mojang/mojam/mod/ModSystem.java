@@ -1,5 +1,8 @@
 package com.mojang.mojam.mod;
 
+import static com.mojang.mojam.mod.ModSystem.mojam;
+import static com.mojang.mojam.mod.ModSystem.print;
+
 import java.awt.image.BufferedImage;
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
@@ -63,7 +66,7 @@ public final class ModSystem {
     public static File modsFolder;
     public static List<IMod> modList;
     public static List<ScriptEngine> scriptList;
-    private static MojamComponent mojam;
+    static MojamComponent mojam;
     private static Level level;
     private static InputHandler inputHandler;
     private static Keys keys;
@@ -115,7 +118,6 @@ public final class ModSystem {
 	    modDir = new File(new File(MojamComponent.class
 		    .getProtectionDomain().getCodeSource().getLocation()
 		    .toURI()), "/script");
-	    System.out.println(modDir.getAbsolutePath());
 	    modsFolder = new File(mojam.getMojamDir(), "/mods/");
 	    isJar = modDir.getAbsolutePath().endsWith(".jar");
 	    isDebug = !isJar;
@@ -123,11 +125,11 @@ public final class ModSystem {
 	    e1.printStackTrace();
 	}
 
-	System.out.println("ModSystem starting up...");
+	print("ModSystem starting up...");
 	addMod(ModSystem.class.getClassLoader(), "SnatchContent.class");
 	inputHandler = (InputHandler) reflectField(mojam, "inputHandler");
 	try {
-	    readLinksFromFile(new File(mojam.getMojamDir(), "mods.txt"));
+	    SubscriptionsHandler.run();
 	    readFromModFolder(modDir);
 	} catch (Exception e) {
 	    e.printStackTrace();
@@ -263,7 +265,7 @@ public final class ModSystem {
      * @return An instance of the IMod once loaded
      * @see IMod
      */
-    private static IMod addMod(ClassLoader classloader, String s) {
+    static IMod addMod(ClassLoader classloader, String s) {
 	try {
 	    String s1 = s.split("\\.")[0];
 	    Package package1 = (com.mojang.mojam.mod.ModSystem.class)
@@ -281,8 +283,7 @@ public final class ModSystem {
 	    IMod mod = (IMod) class1.newInstance();
 	    if (mod != null) {
 		modList.add(mod);
-		System.out.println("Java Mod Initialized: "
-			+ mod.getClass().getSimpleName());
+		print("Java Mod Initialized: " + mod.getClass().getSimpleName());
 		return mod;
 	    }
 	} catch (Exception throwable) {
@@ -308,8 +309,7 @@ public final class ModSystem {
 	if (file.isFile()
 		&& (file.getName().endsWith(".jar") || file.getName().endsWith(
 			".zip"))) {
-	    System.out.println("Reading from classpath "
-		    + file.getAbsolutePath());
+	    print("Reading from classpath " + file.getAbsolutePath());
 	    FileInputStream fileinputstream = new FileInputStream(file);
 	    ZipInputStream zipinputstream = new ZipInputStream(fileinputstream);
 	    Object obj = null;
@@ -362,7 +362,11 @@ public final class ModSystem {
      *            The location of the script file
      * @return An instance of the script
      */
-    private static ScriptEngine addScript(String s) {
+    static ScriptEngine addScript(String s) {
+	if (s.startsWith("http")) {
+	    s = new File(mojam.getMojamDir(), "/mods"
+		    + s.substring(s.lastIndexOf('/'))).getAbsolutePath();
+	}
 	if (new File(s).isDirectory()) {
 	    return null;
 	}
@@ -377,12 +381,11 @@ public final class ModSystem {
 	    e.eval(fr);
 	    e.put("Mojam", mojam);
 	    scriptList.add(e);
-	    System.out.println(e.getFactory().getExtensions().get(0)
-		    .toUpperCase()
+	    print(e.getFactory().getExtensions().get(0).toUpperCase()
 		    + " Script initialised: " + s);
 	} catch (FileNotFoundException e1) {
 	} catch (NullPointerException e1) {
-	    System.out.println("Could not initialise mod " + s);
+	    err("Could not initialise mod " + s);
 	} catch (Exception e1) {
 	}
 	return e;
@@ -402,7 +405,7 @@ public final class ModSystem {
 	    Enumeration e = zipfile.entries();
 	    while (e.hasMoreElements()) {
 		entry = (ZipEntry) e.nextElement();
-		System.out.println("Extracting: " + entry);
+		print("Extracting: " + entry);
 		is = new BufferedInputStream(zipfile.getInputStream(entry));
 		int count;
 		byte data[] = new byte[BUFFER];
@@ -419,17 +422,16 @@ public final class ModSystem {
 		engine.eval(fr);
 		engine.put("ModSystem", new ModSystem());
 		scriptList.add(engine);
-		System.out.println(engine.getFactory().getExtensions().get(0)
-			.toUpperCase()
+		print(engine.getFactory().getExtensions().get(0).toUpperCase()
 			+ " Script initialised: " + s);
 	    }
 	} catch (FileNotFoundException e1) {
 	    if (!isJar)
 		e1.printStackTrace();
 	} catch (NullPointerException e1) {
-	    System.out.println("Could not initialise mod " + s);
+	    err("Could not initialise mod " + s);
 	} catch (ScriptException e1) {
-	    System.out.println("Bad Script file: " + entry.getName());
+	    err("Bad Script file: " + entry.getName());
 	    e1.printStackTrace();
 	} catch (IOException e1) {
 	    e1.printStackTrace();
@@ -492,8 +494,8 @@ public final class ModSystem {
     public static int addEntity(Class entityClass) {
 	spawnList.put(spawnList.size(), entityClass);
 	int i = spawnList.size() - 1;
-	System.out.println("Registered " + spawnList.get(i).getSimpleName()
-		+ " with id " + i);
+	print("Registered " + spawnList.get(i).getSimpleName() + " with id "
+		+ i);
 	return i;
     }
 
@@ -569,7 +571,7 @@ public final class ModSystem {
 	mojam.keys.getAll().add(key);
 	reflectMethod(InputHandler.class, inputHandler, "initKey",
 		new Object[] { key, code });
-	System.out.println("Added key: " + key.name + " with keycode: " + code);
+	print("Added key: " + key.name + " with keycode: " + code);
 	return key;
     }
 
@@ -906,9 +908,8 @@ public final class ModSystem {
 		i.invokeFunction(s, args);
 	    } catch (ClassCastException e) {
 	    } catch (ScriptException e) {
-		System.out.println("Bad method in mod" + " at method " + s
-			+ " line: " + e.getLineNumber() + " column: "
-			+ e.getColumnNumber());
+		err("Bad method in mod" + " at method " + s + " line: "
+			+ e.getLineNumber() + " column: " + e.getColumnNumber());
 		e.printStackTrace();
 	    } catch (Exception e) {
 	    }
@@ -942,7 +943,7 @@ public final class ModSystem {
     public static Font getFont() {
 	return Font.defaultFont();
     }
-    
+
     /**
      * Since JRuby doesn't like static methods for $mod
      */
@@ -950,26 +951,29 @@ public final class ModSystem {
     public Font font() {
 	return Font.defaultFont();
     }
-    
+
     /**
      * Gets the instance of Screen to avoid static method semantics in scripts
+     * 
      * @return the instance of Screen
      */
     public static AbstractScreen getScreen() {
 	return mojam.screen;
     }
-    
+
     /**
      * Since JRuby doesn't like static methods for $mod
+     * 
      * @return the instance of Screen
      */
     @Deprecated
     public AbstractScreen screen() {
 	return mojam.screen;
     }
-    
+
     /**
-     * Shortcut to the Font.defaultFont.draw() issues with scripts and namespaces
+     * Shortcut to the Font.defaultFont.draw() issues with scripts and
+     * namespaces
      */
     public static void draw(String s, int i, int j) {
 	Font.defaultFont().draw(mojam.screen, s, i, j);
@@ -1013,177 +1017,6 @@ public final class ModSystem {
     }
 
     /**
-     * Sets up mod subscriptions file
-     * 
-     * @param f
-     *            The location of the subscriptions
-     * @throws IOException
-     */
-    private static void readLinksFromFile(File f) throws IOException {
-	createSubscriptions(f);
-	String line = readStringFromFile(f);
-
-	List<String> links = Arrays.asList(line.split("\n|\r"));
-	List<String> scripts = new ArrayList<String>();
-	List<String> dependencies = new ArrayList<String>();
-	int i = 0;
-	for (String s : links) {
-	    i++;
-	    if (s == null || s.startsWith("#"))
-		continue;
-	    s.trim();
-	    File f1 = new File(mojam.getMojamDir().getAbsolutePath() + "/mods/"
-		    + s.substring(s.lastIndexOf('/') + 1));
-	    try {
-		if (s.charAt(0) == '~') {
-		    dependencies.add(readMod(s.charAt(0), s.substring(1)));
-		} else {
-		    scripts.add(readMod(s.charAt(0), s.substring(1)));
-		}
-	    } catch (Exception e) {
-
-	    }
-	}
-	i = 1;
-
-	for (String s : scripts) {
-	    if (s != null) {
-		i++;
-		try {
-		    if (s.endsWith(".class")) {
-			addMod(ModSystem.class.getClassLoader(), s);
-		    } else {
-			addScript(s);
-		    }
-		} catch (Exception e) {
-		    e.printStackTrace();
-		}
-	    }
-	}
-    }
-
-    /**
-     * Parses a line from the mod subscription file
-     * 
-     * @param command
-     *            The initial char of the line
-     * @param url
-     *            The URL of the mod
-     * @return The URL of the mod once it has been downloaded
-     * @throws IOException
-     */
-    private static String readMod(char command, String url) throws IOException {
-	File f1 = new File(mojam.getMojamDir().getAbsolutePath() + "/mods/"
-		+ url.substring(url.lastIndexOf('/') + 1));
-	if (command == '+' || command == '~') {
-	    f1.createNewFile();
-	    File f2 = downloadFile(url, f1.getAbsolutePath());
-	    return f2.getAbsolutePath();
-	} else if (command == '#' || command == '-') {
-	    return null;
-	} else if (command == '@') {
-	    return url;
-	} else if (command == '$') {
-	    if (f1.delete() && !f1.exists()) {
-		System.out.println("Successfully deleted mod "
-			+ f1.getCanonicalPath());
-	    }
-	    return null;
-	}
-	return null;
-    }
-
-    /**
-     * Reads a File into a String
-     * 
-     * @param f
-     *            The File to read
-     * @return The Contents of the file
-     * @throws IOException
-     */
-    private static String readStringFromFile(File f) throws IOException {
-	BufferedReader reader = new BufferedReader(new FileReader(f));
-	String line = null;
-	StringBuilder stringBuilder = new StringBuilder();
-	String ls = System.getProperty("line.separator");
-	while ((line = reader.readLine()) != null) {
-	    stringBuilder.append(line);
-	    stringBuilder.append(ls);
-	}
-	return stringBuilder.toString();
-    }
-
-    /**
-     * Creates the subscriptions file
-     * 
-     * @param f
-     *            The location of the file
-     * @throws IOException
-     */
-    private static void createSubscriptions(File f) throws IOException {
-	if (!f.exists()) {
-	    while (f.createNewFile()) {
-		System.out.println("Creating Mod Subscriptions File");
-	    }
-	    PrintWriter p = new PrintWriter(f);
-	    p.println("#####CATACOMB###SNATCH#####");
-	    p.println("#");
-	    p.println("# Add links to subscribe to mods.");
-	    p.println("#");
-	    p.println("# Key:");
-	    p.println("# +<url> Subscribed Mod");
-	    p.println("# -<url> Unsubscribed Mod");
-	    p.println("# #<text> Comment");
-	    p.println("# @<url> Offline Mod");
-	    p.println("# $<url> Remove Mod");
-	    p.println("# ~<text> Dependency");
-	    p.println("#");
-	    p.println("###########################");
-	    p.close();
-	}
-    }
-
-    private static boolean upToDate(String s) throws IOException {
-	File f = new File(s);
-	File f1 = new File(mojam.getMojamDir(), "mods/"
-		+ s.substring(s.lastIndexOf('/') + 1));
-	if (!f1.exists())
-	    f1.mkdirs();
-	f1.createNewFile();
-	if (f.hashCode() == f1.hashCode()
-		&& f.lastModified() == f1.lastModified()) {
-	    return true;
-	}
-	return false;
-    }
-
-    /**
-     * Downloads a file
-     * 
-     * @param path
-     *            The URL of the file to download
-     * @param dest
-     *            The destination to put the file
-     * @return The File once downloaded
-     * @throws IOException
-     */
-    public static File downloadFile(String path, String dest)
-	    throws IOException {
-	File f, f1;
-	f = new File(path);
-	f1 = new File(dest);
-	if (!f1.exists() && !f1.createNewFile())
-	    throw new IOException("Could not create file at "
-		    + f1.getCanonicalPath());
-	URL url = new URL(path);
-	ReadableByteChannel rbc = Channels.newChannel(url.openStream());
-	FileOutputStream fos = new FileOutputStream(f1);
-	fos.getChannel().transferFrom(rbc, 0, 1 << 24);
-	System.out.println("Downloaded to: " + dest);
-	return new File(dest);
-    }
-
-    /**
      * Used for impromptu class casting in dynamic languages
      * 
      * @param d
@@ -1194,10 +1027,11 @@ public final class ModSystem {
 	return (long) d;
     }
 
+    @Deprecated
     private static void printAllLangFactories() {
 	for (ScriptEngineFactory sef : lang.getEngineFactories()) {
 	    for (String s : sef.getExtensions()) {
-		System.out.println(s);
+		debug(s);
 	    }
 	}
     }
@@ -1216,6 +1050,51 @@ public final class ModSystem {
 		}
 	    }
 	}
+    }
+
+    /**
+     * Downloads a file
+     * 
+     * @param path
+     *            The URL of the file to download
+     * @param dest
+     *            The destination to put the file
+     * @param info
+     *            Additional optional data
+     * 
+     * @return The File once downloaded
+     * @throws IOException
+     */
+    public static File downloadFile(String path, String dest, String info)
+	    throws IOException {
+	File f, f1;
+	f = new File(path);
+	f1 = new File(dest);
+	if (!f1.exists() && !f1.createNewFile())
+	    throw new IOException("Could not create file at "
+		    + f1.getCanonicalPath());
+	URL url = new URL(path);
+	ReadableByteChannel rbc = Channels.newChannel(url.openStream());
+	FileOutputStream fos = new FileOutputStream(f1);
+	fos.getChannel().transferFrom(rbc, 0, 1 << 24);
+	print("Downloaded " + info + " to: " + dest);
+	return new File(dest);
+    }
+    
+    public static void print(Object o) {
+	System.out.println(o);
+    }
+
+    public static void err(Object o) {
+	System.err.println(o);
+    }
+
+    public static void debug(Object... o) {
+	String result = "";
+	for (Object o1 : o) {
+	    result += "-[" + o1.toString() + "]-";
+	}
+	System.out.println(result);
     }
 
 }
