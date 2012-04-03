@@ -1,12 +1,9 @@
 package com.mojang.mojam.mod;
 
-import static com.mojang.mojam.mod.ModSystem.mojam;
-import static com.mojang.mojam.mod.ModSystem.print;
-
+import java.awt.event.KeyEvent;
 import java.awt.image.BufferedImage;
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
-import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
@@ -14,7 +11,6 @@ import java.io.FileOutputStream;
 import java.io.FileReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.io.PrintWriter;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
@@ -39,8 +35,6 @@ import javax.script.ScriptEngine;
 import javax.script.ScriptEngineFactory;
 import javax.script.ScriptEngineManager;
 import javax.script.ScriptException;
-
-import org.lwjgl.opengl.XRandR.Screen;
 
 import com.mojang.mojam.InputHandler;
 import com.mojang.mojam.Keys;
@@ -68,8 +62,6 @@ public final class ModSystem {
     public static List<ScriptEngine> scriptList;
     static MojamComponent mojam;
     private static Level level;
-    private static InputHandler inputHandler;
-    private static Keys keys;
     public static Map<Integer, Class> spawnList;
     private static ScriptEngineManager lang;
     public static boolean isJar;
@@ -86,8 +78,6 @@ public final class ModSystem {
 	modList.clear();
 	scriptList.clear();
 	level = null;
-	inputHandler = null;
-	keys = null;
 	spawnList.clear();
 	lang = null;
 	isJar = false;
@@ -110,14 +100,13 @@ public final class ModSystem {
 	console = mojam.console;
 	modList = new ArrayList<IMod>();
 	scriptList = new ArrayList<ScriptEngine>();
-	keys = new Keys();
 	spawnList = new HashMap<Integer, Class>();
 	lang = new ScriptEngineManager();
-	keys.getAll().removeAll(keys.getAll());
+	
 	try {
 	    modDir = new File(new File(MojamComponent.class
-		    .getProtectionDomain().getCodeSource().getLocation()
-		    .toURI()), "/script");
+		.getProtectionDomain().getCodeSource().getLocation().toURI()),
+		"/script");
 	    modsFolder = new File(mojam.getMojamDir(), "/mods/");
 	    isJar = modDir.getAbsolutePath().endsWith(".jar");
 	    isDebug = !isJar;
@@ -127,10 +116,11 @@ public final class ModSystem {
 
 	print("ModSystem starting up...");
 	addMod(ModSystem.class.getClassLoader(), "SnatchContent.class");
-	inputHandler = (InputHandler) reflectField(mojam, "inputHandler");
 	try {
 	    SubscriptionsHandler.run();
 	    readFromModFolder(modDir);
+	    readFromClassPath(new File(ModSystem.class
+		.getProtectionDomain().getCodeSource().getLocation().toURI()));
 	} catch (Exception e) {
 	    e.printStackTrace();
 	}
@@ -162,12 +152,14 @@ public final class ModSystem {
      * @throws NoSuchMethodException
      */
     private static void readFromModFolder(File file) throws IOException,
-	    IllegalArgumentException, IllegalAccessException,
-	    InvocationTargetException, SecurityException, NoSuchMethodException {
+	IllegalArgumentException, IllegalAccessException,
+	InvocationTargetException, SecurityException, NoSuchMethodException {
 
 	ClassLoader classloader = (MojamComponent.class).getClassLoader();
 	Method method = (URLClassLoader.class).getDeclaredMethod("addURL",
-		new Class[] { URL.class });
+	    new Class[] {
+		URL.class
+	    });
 	method.setAccessible(true);
 	if (!file.isDirectory()) {
 	    throw new IllegalArgumentException("Folder must be a Directory.");
@@ -178,11 +170,12 @@ public final class ModSystem {
 	    for (int i = 0; i < afile.length; i++) {
 		File file1 = afile[i];
 		if (file1.isDirectory()
-			|| file1.isFile()
-			&& (file1.getName().endsWith(".jar") || file1.getName()
-				.endsWith(".zip"))) {
-		    method.invoke(classloader, new Object[] { file1.toURI()
-			    .toURL() });
+		    || file1.isFile()
+		    && (file1.getName().endsWith(".jar") || file1.getName()
+			.endsWith(".zip"))) {
+		    method.invoke(classloader, new Object[] {
+			file1.toURI().toURL()
+		    });
 		}
 	    }
 	}
@@ -192,13 +185,13 @@ public final class ModSystem {
 		continue;
 	    }
 	    if (file2.isDirectory()
-		    || file2.isFile()
-		    && (file2.getName().endsWith(".jar") || file2.getName()
-			    .endsWith(".zip"))) {
+		|| file2.isFile()
+		&& (file2.getName().endsWith(".jar") || file2.getName()
+		    .endsWith(".zip"))) {
 		if (file2.isFile()) {
 		    FileInputStream fileinputstream = new FileInputStream(file2);
 		    ZipInputStream zipinputstream = new ZipInputStream(
-			    fileinputstream);
+			fileinputstream);
 		    Object obj = null;
 		    do {
 			ZipEntry zipentry = zipinputstream.getNextEntry();
@@ -207,10 +200,10 @@ public final class ModSystem {
 			}
 			String s1 = zipentry.getName();
 			if (!zipentry.isDirectory() && s1.startsWith("mod_")
-				&& s1.endsWith(".class")) {
+			    && s1.endsWith(".class")) {
 			    addMod(classloader, s1);
 			} else if (!zipentry.isDirectory()
-				&& s1.startsWith("mod_") && !s1.contains(".MF")) {
+			    && s1.startsWith("mod_") && !s1.contains(".MF")) {
 			    addScript(zipentry);
 			}
 		    } while (true);
@@ -218,10 +211,10 @@ public final class ModSystem {
 		    fileinputstream.close();
 		} else if (file2.isDirectory()) {
 		    Package package1 = (com.mojang.mojam.MojamComponent.class)
-			    .getPackage();
+			.getPackage();
 		    if (package1 != null) {
 			String s = package1.getName().replace('.',
-				File.separatorChar);
+			    File.separatorChar);
 			file2 = new File(file2, s);
 		    }
 		    File afile1[] = file2.listFiles();
@@ -229,11 +222,10 @@ public final class ModSystem {
 			for (int k = 0; k < afile1.length; k++) {
 			    String s2 = afile1[k].getName();
 			    if (afile1[k].isFile() && s2.startsWith("mod_")
-				    && s2.endsWith(".class")) {
+				&& s2.endsWith(".class")) {
 				addMod(classloader, s2);
 			    } else if (afile1[k].isFile()
-				    && s2.startsWith("mod_")
-				    && !s2.contains(".MF")) {
+				&& s2.startsWith("mod_") && !s2.contains(".MF")) {
 				addScript(s2);
 			    } else if (afile1[k].isDirectory()) {
 				readFromModFolder(afile[k]);
@@ -269,12 +261,11 @@ public final class ModSystem {
 	try {
 	    String s1 = s.split("\\.")[0];
 	    Package package1 = (com.mojang.mojam.mod.ModSystem.class)
-		    .getPackage();
+		.getPackage();
 	    if (package1 != null) {
 		s1 = (new StringBuilder(String.valueOf(package1.getName())))
-			.append(".")
-			.append(s1.substring(s.lastIndexOf('/') + 1))
-			.toString();
+		    .append(".").append(s1.substring(s.lastIndexOf('/') + 1))
+		    .toString();
 	    }
 	    Class class1 = classloader.loadClass(s1);
 	    if (!(IMod.class).isAssignableFrom(class1)) {
@@ -289,8 +280,8 @@ public final class ModSystem {
 	} catch (Exception throwable) {
 	    throwable.printStackTrace();
 	    System.out
-		    .println((new StringBuilder("Failed to load mod from \""))
-			    .append(s).append("\"").toString());
+		.println((new StringBuilder("Failed to load mod from \""))
+		    .append(s).append("\"").toString());
 	}
 	return null;
     }
@@ -304,11 +295,11 @@ public final class ModSystem {
      * @throws IOException
      */
     private static void readFromClassPath(File file)
-	    throws FileNotFoundException, IOException {
+	throws FileNotFoundException, IOException {
 	ClassLoader classloader = (ModSystem.class).getClassLoader();
 	if (file.isFile()
-		&& (file.getName().endsWith(".jar") || file.getName().endsWith(
-			".zip"))) {
+	    && (file.getName().endsWith(".jar") || file.getName().endsWith(
+		".zip"))) {
 	    print("Reading from classpath " + file.getAbsolutePath());
 	    FileInputStream fileinputstream = new FileInputStream(file);
 	    ZipInputStream zipinputstream = new ZipInputStream(fileinputstream);
@@ -320,10 +311,10 @@ public final class ModSystem {
 		}
 		String s1 = zipentry.getName();
 		if (!zipentry.isDirectory() && s1.contains("mod_")
-			&& s1.endsWith(".class")) {
+		    && s1.endsWith(".class")) {
 		    addMod(classloader, s1);
 		} else if (!zipentry.isDirectory() && s1.contains("mod_")
-			&& !s1.toLowerCase().endsWith(".mf")) {
+		    && !s1.toLowerCase().endsWith(".mf")) {
 		    addScript(zipentry);
 		}
 	    } while (true);
@@ -344,10 +335,10 @@ public final class ModSystem {
 		for (int i = 0; i < afile.length; i++) {
 		    String s2 = afile[i].getName();
 		    if (afile[i].isFile() && s2.startsWith("mod_")
-			    && s2.endsWith(".class")) {
+			&& s2.endsWith(".class")) {
 			addMod(classloader, s2);
 		    } else if (afile[i].isFile() && s2.contains("mod_")
-			    && !s2.toLowerCase().endsWith(".mf")) {
+			&& !s2.toLowerCase().endsWith(".mf")) {
 			addScript(afile[i].getAbsolutePath());
 		    }
 		}
@@ -365,24 +356,24 @@ public final class ModSystem {
     static ScriptEngine addScript(String s) {
 	if (s.startsWith("http")) {
 	    s = new File(mojam.getMojamDir(), "/mods"
-		    + s.substring(s.lastIndexOf('/'))).getAbsolutePath();
+		+ s.substring(s.lastIndexOf('/'))).getAbsolutePath();
 	}
 	if (new File(s).isDirectory()) {
 	    return null;
 	}
 	ScriptEngine e = lang.getEngineByExtension(s.substring(s
-		.lastIndexOf('.') + 1));
+	    .lastIndexOf('.') + 1));
 	try {
 	    FileReader fr = new FileReader(s);
 	    InputStreamReader library = new InputStreamReader(
-		    ModSystem.class.getResourceAsStream("/script/lib/lib."
-			    + s.substring(s.lastIndexOf('.') + 1)));
+		ModSystem.class.getResourceAsStream("/script/lib/lib."
+		    + s.substring(s.lastIndexOf('.') + 1)));
 	    e.eval(library);
 	    e.eval(fr);
 	    e.put("Mojam", mojam);
 	    scriptList.add(e);
 	    print(e.getFactory().getExtensions().get(0).toUpperCase()
-		    + " Script initialised: " + s);
+		+ " Script initialised: " + s);
 	} catch (FileNotFoundException e1) {
 	} catch (NullPointerException e1) {
 	    err("Could not initialise mod " + s);
@@ -394,7 +385,7 @@ public final class ModSystem {
     private static ScriptEngine addScript(ZipEntry entry) {
 	String s = entry.getName();
 	ScriptEngine engine = lang.getEngineByExtension(s.substring(s
-		.lastIndexOf('.') + 1));
+	    .lastIndexOf('.') + 1));
 	if (engine == null || entry.getName().contains("MANIFEST"))
 	    return null;
 	try {
@@ -423,7 +414,7 @@ public final class ModSystem {
 		engine.put("ModSystem", new ModSystem());
 		scriptList.add(engine);
 		print(engine.getFactory().getExtensions().get(0).toUpperCase()
-			+ " Script initialised: " + s);
+		    + " Script initialised: " + s);
 	    }
 	} catch (FileNotFoundException e1) {
 	    if (!isJar)
@@ -462,7 +453,9 @@ public final class ModSystem {
 	for (ScriptEngine sc : scriptList) {
 	    try {
 		Entity e = (Entity) ((Invocable) sc).invokeFunction(
-			"getEntityInstanceById", new Object[] { i, x, y });
+		    "getEntityInstanceById", new Object[] {
+			i, x, y
+		    });
 		if (e != null) {
 		    return e;
 		}
@@ -495,12 +488,12 @@ public final class ModSystem {
 	spawnList.put(spawnList.size(), entityClass);
 	int i = spawnList.size() - 1;
 	print("Registered " + spawnList.get(i).getSimpleName() + " with id "
-		+ i);
+	    + i);
 	return i;
     }
 
     public void registerWeapon(Class<? extends IWeapon> weapon, String name,
-	    String text) {
+	String text) {
 	mojam.console.give.registerWeapon(weapon, name, text);
     }
 
@@ -527,64 +520,15 @@ public final class ModSystem {
     }
 
     /**
-     * Registers a new key <br>
-     * {@code Key mykey = ModSystem.addKey("aKey","a");}
-     * 
-     * @param name
-     *            The name of the key
-     * @param code
-     *            The keyboard code of the key to be registered
-     * @return The registered key
-     */
-    public static Key addkey(String name, String code) {
-	return addKey(name, keycode(code));
-    }
-
-    /**
-     * Registers a new key <br>
-     * {@code Key mykey = ModSystem.addKey("aKey",32);}
-     * 
-     * @param name
-     *            The name of the key
-     * @param code
-     *            The keyboard code of the key to be registered
-     * @return The registered key
-     */
-    public static Key addKey(String name, int code) {
-	return addKey(keys.new Key(name), code);
-    }
-
-    /**
-     * Registers a given key
-     * 
-     * @param key
-     *            The key being registered
-     * @param code
-     *            The keyboard code of the key being registered
-     * @return The key once registered
-     */
-    public static Key addKey(Key key, int code) {
-	inputHandler = (InputHandler) reflectField(mojam, "inputHandler");
-	for (Keys k : mojam.synchedKeys) {
-	    k.getAll().add(key);
-	}
-	mojam.keys.getAll().add(key);
-	reflectMethod(InputHandler.class, inputHandler, "initKey",
-		new Object[] { key, code });
-	print("Added key: " + key.name + " with keycode: " + code);
-	return key;
-    }
-
-    /**
      * Gets the integer keycode for the name s
      * 
      * @param s
      *            The name of the key
      * @return The intcode of the key
      */
-    public static int keycode(String s) {
+    public static int getKey(String s) {
 	Field f = (Field) reflectField(java.awt.event.KeyEvent.class,
-		"VK_" + s.toUpperCase());
+	    "VK_" + s.toUpperCase());
 	try {
 	    return (Integer) f.get(null);
 	} catch (IllegalArgumentException e) {
@@ -665,7 +609,7 @@ public final class ModSystem {
      * @return The returned value of the method
      */
     public static Object reflectMethod(Class c, Object o, String s,
-	    Object params[]) {
+	Object params[]) {
 	// Go and find the private method...
 	final Method methods[] = c.getDeclaredMethods();
 	for (int i = 0; i < methods.length; ++i) {
@@ -767,7 +711,7 @@ public final class ModSystem {
     private static AbstractBitmap load(String string) {
 	try {
 	    BufferedImage bi = ImageIO.read(MojamComponent.class
-		    .getResource(string));
+		.getResource(string));
 
 	    int w = bi.getWidth();
 	    int h = bi.getHeight();
@@ -894,7 +838,7 @@ public final class ModSystem {
      * @param args
      *            The args to pass to the script
      */
-    private static void invoke(String s, Object... args) {
+    static void invoke(String s, Object... args) {
 	for (ScriptEngine sc : scriptList) {
 	    String sarg = "";
 	    if (args.length > 0) {
@@ -909,7 +853,7 @@ public final class ModSystem {
 	    } catch (ClassCastException e) {
 	    } catch (ScriptException e) {
 		err("Bad method in mod" + " at method " + s + " line: "
-			+ e.getLineNumber() + " column: " + e.getColumnNumber());
+		    + e.getLineNumber() + " column: " + e.getColumnNumber());
 		e.printStackTrace();
 	    } catch (Exception e) {
 	    }
@@ -1035,21 +979,19 @@ public final class ModSystem {
 	    }
 	}
     }
-
-    public static void handleNetworkCommand(int playerId, Object packet) {
-	if (packet instanceof Network.ChangeKeyMessage) {
-	    ChangeKeyMessage ckc = (ChangeKeyMessage) packet;
-	    Key key = mojam.synchedKeys[playerId].getAll().get(ckc.key);
-	    if (key.isDown) {
-		for (IMod m : modList) {
-		    m.IfKeyDown(key);
-		}
-	    } else {
-		for (IMod m : modList) {
-		    m.IfKeyUp(key);
-		}
-	    }
+    
+    public static void onKeyPressed(KeyEvent event) {
+	for(IMod m:modList) {
+	    m.OnKeyPressed(event);
 	}
+	invoke("OnKeyPressed", event);
+    }
+    
+    public static void onKeyReleased(KeyEvent event) {
+	for(IMod m:modList) {
+	    m.OnKeyReleased(event);
+	}
+	invoke("OnKeyReleased", event);
     }
 
     /**
@@ -1066,13 +1008,13 @@ public final class ModSystem {
      * @throws IOException
      */
     public static File downloadFile(String path, String dest, String info)
-	    throws IOException {
+	throws IOException {
 	File f, f1;
 	f = new File(path);
 	f1 = new File(dest);
 	if (!f1.exists() && !f1.createNewFile())
 	    throw new IOException("Could not create file at "
-		    + f1.getCanonicalPath());
+		+ f1.getCanonicalPath());
 	URL url = new URL(path);
 	ReadableByteChannel rbc = Channels.newChannel(url.openStream());
 	FileOutputStream fos = new FileOutputStream(f1);
@@ -1080,7 +1022,7 @@ public final class ModSystem {
 	print("Downloaded " + info + " to: " + dest);
 	return new File(dest);
     }
-    
+
     public static void print(Object o) {
 	System.out.println(o);
     }

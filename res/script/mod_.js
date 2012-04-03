@@ -25,3 +25,7 @@ function HandlePacket(packet){}
 function CreateLevel(level){}
 
 function OnConsole(command, params){}
+
+function OnKeyPressed(event){}
+
+function OnKeyReleased(event){}

@@ -39,3 +39,9 @@ end
 
 def OnConsole(command,params)
 end
+
+def OnKeyPressed(event)
+end
+
+def OnKeyReleased(event)
+end

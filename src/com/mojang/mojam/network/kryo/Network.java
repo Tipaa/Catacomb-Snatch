@@ -6,7 +6,9 @@ import java.util.List;
 import com.esotericsoftware.kryo.Kryo;
 import com.esotericsoftware.kryonet.EndPoint;
 import com.esotericsoftware.kryonet.FrameworkMessage.Ping;
+import com.mojang.mojam.MojamComponent;
 import com.mojang.mojam.level.Level;
+import com.mojang.mojam.mod.ModSystem;
 
 public class Network {
 

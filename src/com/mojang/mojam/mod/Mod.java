@@ -1,5 +1,7 @@
 package com.mojang.mojam.mod;
 
+import java.awt.event.KeyEvent;
+
 import com.mojang.mojam.Keys;
 import com.mojang.mojam.MojamComponent;
 import com.mojang.mojam.Keys.Key;
@@ -175,23 +177,23 @@ public abstract class Mod implements IMod {
     }
 
     /**
-     * Intended to be called when the key went off to on, omitted from release
+     * Called by the keylistener KeyListenerProxy
      * 
      * @param key
      *            The key to be changing states
      */
-    @Deprecated
-    public void OnKeyPressed(Key key) {
+    @Override
+    public void OnKeyPressed(KeyEvent key) {
     }
 
     /**
-     * Intended to be called when the key went on to off, omitted from release
+     * Called by the keylistener KeyListenerProxy
      * 
      * @param key
      *            The key to be changing states
      */
-    @Deprecated
-    public void OnKeyReleased(Key key) {
+    @Override
+    public void OnKeyReleased(KeyEvent key) {
     }
 
     /**

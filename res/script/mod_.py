@@ -39,3 +39,9 @@ def CreateLevel(level):
 
 def OnConsole(command, params):
     return
+    
+def OnKeyPressed(event):
+    return
+
+def OnKeyReleased(event):
+    return

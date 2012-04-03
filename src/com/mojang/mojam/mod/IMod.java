@@ -1,5 +1,7 @@
 package com.mojang.mojam.mod;
 
+import java.awt.event.KeyEvent;
+
 import com.mojang.mojam.Keys;
 import com.mojang.mojam.MojamComponent;
 import com.mojang.mojam.Keys.Key;
@@ -158,6 +160,22 @@ public interface IMod {
      * @see ModSystem
      */
     public String getVersion();
+    
+    /**
+     * Called by the keylistener KeyListenerProxy
+     * 
+     * @param event
+     *            The key to be changing states
+     */
+    public void OnKeyPressed(KeyEvent event);
+    
+    /**
+     * Called by the keylistener KeyListenerProxy
+     * 
+     * @param key
+     *            The key to be changing states
+     */
+    public void OnKeyReleased(KeyEvent key);
 
     /**
      * Called upon a console command
